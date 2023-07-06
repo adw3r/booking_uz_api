@@ -49,4 +49,4 @@ if __name__ == '__main__':
                 res['url'] = f'https://booking.uz.gov.ua/?from=2200001&to=2218000&date=2023-07-13&train={res["num"]}&url=train-wagons'
                 del res['num']
                 bot.send_message(265753495, str(res))
-        time.sleep(60*1)
+        time.sleep(60*10)

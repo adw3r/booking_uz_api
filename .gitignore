@@ -1,2 +1,4 @@
 /.env
 /logs/
+results.json
+wagon_res.json
