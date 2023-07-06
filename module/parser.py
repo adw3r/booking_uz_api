@@ -98,7 +98,11 @@ def get_cost(wagon_num):
         json.dump(types, file)
     with open(WAGON_RES) as file:
         res = json.load(file)
-    return res['data']['types']
+    res = res.get('data')
+    if res:
+        return res.get('types')
+    else:
+        return
 
 
 def parse_results():
