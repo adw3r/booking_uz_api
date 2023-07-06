@@ -42,23 +42,12 @@ def get_results_response():
     }
 
     response = requests.post('https://booking.uz.gov.ua/train_search/', data=data, headers=headers)
-    # if 'captcha' in response.text:
-    #     logger.error(f'{response.text=}')
-    #     cap = captcha_solvers.CapMonsterSolver.solve(GOOGLEKEY, PAGEURL)
-    #     data['captcha'] = cap
-    #     response = requests.post('https://booking.uz.gov.ua/train_search/', data=data, headers=headers, cookies=cookies)
+    if 'captcha' in response.text:
+        logger.error(f'{response.text=}')
+        cap = captcha_solvers.CapMonsterSolver.solve(GOOGLEKEY, PAGEURL)
+        data['captcha'] = cap
+        response = requests.post('https://booking.uz.gov.ua/train_search/', data=data, headers=headers)
     return response
-
-
-def parse_results():
-    while True:
-        results_response: requests.Response = get_results_response()
-        response_json: dict = results_response.json()
-        formatted_results = ResultsDB.format_results(response_json)
-        logger.info(formatted_results)
-        if formatted_results:
-            ResultsDB.dump_json_results(formatted_results)
-        time.sleep(60 * 1)
 
 
 def get_wagon(wagon_num: str):
@@ -93,11 +82,12 @@ def get_wagon(wagon_num: str):
     }
 
     response = requests.post('https://booking.uz.gov.ua/train_wagons/', headers=headers, data=data)
-    # if 'captcha' in response.text:
-    #     logger.error(f'{response.text=}')
-    #     cap = captcha_solvers.CapMonsterSolver.solve(GOOGLEKEY, PAGEURL)
-    #     data['captcha'] = cap
-    #     response = requests.post('https://booking.uz.gov.ua/train_wagons/', headers=headers, data=data)
+
+    if 'captcha' in response.text:
+        logger.error(f'{response.text=}')
+        cap = captcha_solvers.CapMonsterSolver.solve(GOOGLEKEY, PAGEURL)
+        data['captcha'] = cap
+        response = requests.post('https://booking.uz.gov.ua/train_wagons/', headers=headers, data=data)
     return response
 
 
@@ -109,6 +99,17 @@ def get_cost(wagon_num):
     with open(WAGON_RES) as file:
         res = json.load(file)
     return res['data']['types']
+
+
+def parse_results():
+    while True:
+        results_response: requests.Response = get_results_response()
+        response_json: dict = results_response.json()
+        formatted_results = ResultsDB.format_results(response_json)
+        logger.info(formatted_results)
+        if formatted_results:
+            ResultsDB.dump_json_results(formatted_results)
+        time.sleep(60 * 1)
 
 
 if __name__ == '__main__':

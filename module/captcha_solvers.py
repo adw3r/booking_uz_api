@@ -42,6 +42,7 @@ class CapMonsterSolver(SolverInterface):
               score: str = '0.3') -> str | None:
         request: str = cls._send_request(googlekey=googlekey, pageurl=pageurl, version=version, action=action,
                                          score=score).text
+        print(request)
         if 'OK' not in request:
             return
         status, request_id = request.split('|')
