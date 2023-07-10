@@ -1,4 +1,4 @@
-from module import main, enums, utils
+from module import __main__, enums, utils
 
 
 def test_main_parse_trains():

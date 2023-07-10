@@ -1,3 +1,4 @@
+import dataclasses
 import time
 from datetime import datetime
 from pathlib import Path
@@ -6,6 +7,8 @@ import requests
 import telebot
 
 from module import parser, enums, config
+
+DEP_FORMAT = '%Y-%m-%d'
 
 ME = 265753495
 
@@ -18,24 +21,34 @@ logger = config.logger
 WAGON_RES = Path(config.ROOT_FOLDER, 'wagon_res.json')
 
 
-
 class UnacceptableResponse(Exception):
     ...
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class DeparturePath:
+    dep_from: enums.CityEnum
+    dep_to: enums.CityEnum
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class Departure:
+    date: datetime
+    path: DeparturePath
+    acceptable_time: datetime
+
+
 def check_departures():
-    departures = [
-        {
-            'date': '2023-07-13',
-            'path': {'dep_from': enums.CityEnum.kyiv, 'dep_to': enums.CityEnum.lviv},
-            'acceptable_time': datetime.strptime('20:00', TIME_FORMAT)
-        },
+    departures: list[Departure] = [
+        Departure(date=datetime.strptime('2023-07-13', DEP_FORMAT),
+                  path=DeparturePath(dep_from=enums.CityEnum.kyiv, dep_to=enums.CityEnum.lviv),
+                  acceptable_time=datetime.strptime('20:00', TIME_FORMAT))
     ]
     for departure in departures:
         trains_response: requests.Response = parser.get_trains(
-            dep_from=departure["path"]['dep_from'],
-            dep_to=departure["path"]['dep_to'],
-            departure_date=departure['date']
+            dep_from=departure.path.dep_from,
+            dep_to=departure.path.dep_to,
+            departure_date=departure.date.strftime(DEP_FORMAT)
         )
         if 'error' in trains_response.text:
             logger.error(trains_response.text)
@@ -44,9 +57,9 @@ def check_departures():
         for train in available_trains:
             train_wagons_response: requests.Response = parser.get_train_wagons(
                 wagon_num=train['num'],
-                dep_from=departure["path"]['dep_from'],
-                dep_to=departure["path"]['dep_to'],
-                departure_date=departure['date']
+                dep_from=departure.path.dep_from,
+                dep_to=departure.path.dep_to,
+                departure_date=departure.date.strftime(DEP_FORMAT)
             )
             if 'error' in train_wagons_response.text:
                 logger.error(trains_response.text)
@@ -60,11 +73,11 @@ def check_departures():
             bot.send_message(ME, formatted_message.message)
 
 
-def filter_trains(departure: dict, trains: list[dict]):
+def filter_trains(departure: Departure, trains: list[dict]):
     return [
         train
         for train in trains
-        if datetime.strptime(train.get('from').get('time'), TIME_FORMAT) >= departure['acceptable_time'] and
+        if datetime.strptime(train.get('from').get('time'), TIME_FORMAT) >= departure.acceptable_time and
            train.get('types')
     ]
 
@@ -72,10 +85,10 @@ def filter_trains(departure: dict, trains: list[dict]):
 class MessageFormatter:
     message: str
 
-    def __init__(self, train: dict, train_wagons: dict, departure: dict):
-        train_url = self.create_wagon_link(train["num"], dep_date=departure['date'],
-                                           dep_from=departure["path"]['dep_from'],
-                                           dep_to=departure["path"]['dep_to'])
+    def __init__(self, train: dict, train_wagons: dict, departure: Departure):
+        train_url = self.create_wagon_link(train["num"], dep_date=departure.date,
+                                           dep_from=departure.path.dep_from,
+                                           dep_to=departure.path.dep_to)
         cost = self.__create_string(train_wagons, 'cost')
         available = self.__create_string(train_wagons, 'free')
         title = self.__create_string(train_wagons, 'title')
