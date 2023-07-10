@@ -1,13 +1,14 @@
 import requests
 
-from module import captcha_solvers, enums
+from module import captcha_solvers
 from module.config import logger
+from module.utils import Departure, DateFormats
 
 PAGEURL = 'https://booking.uz.gov.ua'
 GOOGLEKEY = '6LeNkKoUAAAAACciOzccHLPuCS9aFEHPa3Taz4Zf'
 
 
-def get_trains(dep_from: enums.CityEnum, dep_to: enums.CityEnum, departure_date: str) -> requests.Response:
+def get_trains(departure: Departure) -> requests.Response:
     headers = {
         'Accept': '*/*',
         'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -32,9 +33,9 @@ def get_trains(dep_from: enums.CityEnum, dep_to: enums.CityEnum, departure_date:
         'sec-ch-ua-platform': '"Windows"',
     }
     data = {
-        'from': dep_from.value,
-        'to': dep_to.value,
-        'date': departure_date,
+        'from': departure.path.dep_from.value,
+        'to': departure.path.dep_to.value,
+        'date': departure.date.strftime(DateFormats.dep_format.value),
         'time': '00:00',
         'get_tpl': '1',
     }
@@ -48,8 +49,7 @@ def get_trains(dep_from: enums.CityEnum, dep_to: enums.CityEnum, departure_date:
     return response
 
 
-def get_train_wagons(wagon_num: str, dep_from: enums.CityEnum, dep_to: enums.CityEnum,
-                     departure_date: str) -> requests.Response:
+def get_train_wagons(departure: Departure, wagon_num: str) -> requests.Response:
     headers = {
         'Accept': '*/*',
         'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -74,10 +74,10 @@ def get_train_wagons(wagon_num: str, dep_from: enums.CityEnum, dep_to: enums.Cit
     }
 
     data = {
-        'from': dep_from.value,  # 2200001
-        'to': dep_to.value,  # 2218000
+        'from': departure.path.dep_from.value,  # 2200001
+        'to': departure.path.dep_to.value,  # 2218000
         'train': wagon_num,
-        'date': departure_date,
+        'date': departure.date.strftime(DateFormats.dep_format.value),
         'wagon_num': '12',
         'wagon_type': 'С',
         'wagon_class': '2',
