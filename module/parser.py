@@ -1,20 +1,13 @@
-import json
-import time
-from pathlib import Path
-
 import requests
 
-from module import captcha_solvers
-from module.config import logger, ROOT_FOLDER
-from module.utils import ResultsDB
+from module import captcha_solvers, enums
+from module.config import logger
 
 PAGEURL = 'https://booking.uz.gov.ua'
 GOOGLEKEY = '6LeNkKoUAAAAACciOzccHLPuCS9aFEHPa3Taz4Zf'
-DATE = '2023-07-13'
-WAGON_RES = Path(ROOT_FOLDER, 'wagon_res.json')
 
 
-def get_results_response():
+def get_trains(from_value: enums.CityEnum, to_value: enums.CityEnum, departure_date: str) -> requests.Response:
     headers = {
         'Accept': '*/*',
         'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -34,9 +27,9 @@ def get_results_response():
         'sec-ch-ua-platform': '"Windows"',
     }
     data = {
-        'from': '2200001',
-        'to': '2218000',
-        'date': DATE,
+        'from': from_value.value,
+        'to': to_value.value,
+        'date': departure_date,
         'time': '00:00',
         'get_tpl': '1',
     }
@@ -50,8 +43,8 @@ def get_results_response():
     return response
 
 
-def get_wagon(wagon_num: str):
-
+def get_train_wagons(wagon_num: str, from_value: enums.CityEnum, to_value: enums.CityEnum,
+                     departure_date: str) -> requests.Response:
     headers = {
         'Accept': '*/*',
         'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -72,10 +65,10 @@ def get_wagon(wagon_num: str):
     }
 
     data = {
-        'from': '2200001',
-        'to': '2218000',
+        'from': from_value.value,  # 2200001
+        'to': to_value.value,  # 2218000
         'train': wagon_num,
-        'date': DATE,
+        'date': departure_date,
         'wagon_num': '12',
         'wagon_type': 'С',
         'wagon_class': '2',
@@ -89,32 +82,3 @@ def get_wagon(wagon_num: str):
         data['captcha'] = cap
         response = requests.post('https://booking.uz.gov.ua/train_wagons/', headers=headers, data=data)
     return response
-
-
-def get_cost(wagon_num):
-    resp = get_wagon(wagon_num)
-    types = resp.json()
-    with open(WAGON_RES, 'w') as file:
-        json.dump(types, file)
-    with open(WAGON_RES) as file:
-        res = json.load(file)
-    res = res.get('data')
-    if res:
-        return res.get('types')
-    else:
-        return
-
-
-def parse_results():
-    while True:
-        results_response: requests.Response = get_results_response()
-        response_json: dict = results_response.json()
-        formatted_results = ResultsDB.format_results(response_json)
-        logger.info(formatted_results)
-        if formatted_results:
-            ResultsDB.dump_json_results(formatted_results)
-        time.sleep(60 * 1)
-
-
-if __name__ == '__main__':
-    parse_results()

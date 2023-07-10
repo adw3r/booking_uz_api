@@ -1,18 +1,27 @@
+import abc
 import json
 from pathlib import Path
 
-from module.config import ROOT_FOLDER, logger
+import requests
 
-RESULTS_JSON = Path(ROOT_FOLDER, 'results.json')
+from module.config import logger
 
 
-class ResultsDB:
+class ResponseFormatterInterface(abc.ABC):
 
     @staticmethod
-    def format_results(raw_results: dict) -> list[dict]:
+    @abc.abstractmethod
+    def format(response: requests.Response) -> dict | list[dict]:
+        ...
+
+
+class MyFormatter(ResponseFormatterInterface):
+
+    @staticmethod
+    def format(response: requests.Response) -> dict | list[dict]:
         formatted_results = []
         try:
-            list_of_results = raw_results.get('data').get('list')
+            list_of_results = response.json().get('data').get('list')
         except AttributeError as error:
             logger.error(error)
             return formatted_results
@@ -32,12 +41,15 @@ class ResultsDB:
                 formatted_results.append(result)
         return formatted_results
 
+
+class ResultsDB(ResponseFormatterInterface):
+
     @staticmethod
-    def dump_json_results(results: dict | list[dict]):
-        with open(RESULTS_JSON, 'w', encoding='utf-8') as file:
+    def dump(file_name: str | Path, results: dict | list[dict]):
+        with open(file_name, 'w', encoding='utf-8') as file:
             json.dump(results, file)
 
     @staticmethod
-    def load_json_results() -> dict:
-        with open(RESULTS_JSON, encoding='utf-8') as file:
+    def load(file_name: str | Path) -> dict:
+        with open(file_name, encoding='utf-8') as file:
             return json.load(file)
