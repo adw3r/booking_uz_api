@@ -13,14 +13,19 @@ ME = 265753495
 
 bot = telebot.TeleBot(config.BOT_TOKEN)
 logger = config.logger
+departures: list[Departure] = [
+    Departure(
+        date=datetime.strptime('2023-08-10', DateFormats.dep_format.value),
+        path=DeparturePath(
+            dep_from=enums.CityEnum.kyiv,
+            dep_to=enums.CityEnum.lviv
+        ),
+        acceptable_time=datetime.strptime('18:00', DateFormats.time_format.value)
+    )
+]
 
 
 def check_departures():
-    departures: list[Departure] = [
-        Departure(date=datetime.strptime('2023-07-13', DateFormats.dep_format.value),
-                  path=DeparturePath(dep_from=enums.CityEnum.kyiv, dep_to=enums.CityEnum.lviv),
-                  acceptable_time=datetime.strptime('20:00', DateFormats.time_format.value))
-    ]
     for departure in departures:
         trains_response: requests.Response = parser.get_trains(departure)
         if 'error' in trains_response.text:
